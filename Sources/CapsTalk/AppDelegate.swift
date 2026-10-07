@@ -50,11 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !AXIsProcessTrusted() {
             let alert = NSAlert()
             alert.messageText = "Allow CapsTalk to use Caps Lock"
-            alert.informativeText = "Enable CapsTalk in System Settings → Privacy & Security → Accessibility. Add this app with the + button if needed. If macOS also requests Input Monitoring, enable that too. CapsTalk will start automatically once access is granted.\n\nWhile enabled, hold Caps Lock to talk and release it to mute your default system microphone."
+            alert.informativeText = "Turn on CapsTalk in System Settings → Privacy & Security → Accessibility. If it is missing, click + and select Applications → CapsTalk. CapsTalk starts automatically when access is granted.\n\nIf macOS asks for Input Monitoring, allow that too.\n\nHold Caps Lock to talk. Release it to mute your microphone. Look for the microphone icon in the menu bar at the top of your screen."
             alert.addButton(withTitle: "Open Accessibility")
             alert.addButton(withTitle: "Later")
+            alert.addButton(withTitle: "Show App in Finder")
             NSApp.activate(ignoringOtherApps: true)
-            if alert.runModal() == .alertFirstButtonReturn { openAccessibility() }
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn { openAccessibility() }
+            else if response == .alertThirdButtonReturn {
+                NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                openAccessibility()
+            }
         }
     }
 
@@ -417,6 +423,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openAccessibility() {
+        // Register this installed build with macOS so users can enable its entry directly.
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
     @objc private func openInputMonitoring() {
